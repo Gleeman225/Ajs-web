@@ -10,6 +10,8 @@ function App() {
   const [currentPage, setCurrentPage] = useState<PageState>('door');
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [isDoorOpen, setIsDoorOpen] = useState(false);
+  const [collectedTreasures, setCollectedTreasures] = useState<Record<number, boolean>>({});
+  const [showCollectionBar, setShowCollectionBar] = useState(false);
 
   // 处理进入地图页
   const handleEnterMap = () => {
@@ -27,6 +29,13 @@ function App() {
 
   // 处理返回地图
   const handleBackToMap = () => {
+    if (selectedBook) {
+      setCollectedTreasures((prev) => {
+        if (prev[selectedBook.id]) return prev;
+        return { ...prev, [selectedBook.id]: true };
+      });
+      setShowCollectionBar(true);
+    }
     setSelectedBook(null);
     setCurrentPage('map');
   };
@@ -64,6 +73,10 @@ function App() {
           books={books} 
           onSelectBook={handleSelectBook}
           onBackToDoor={handleBackToDoor}
+          collectedTreasureIds={Object.keys(collectedTreasures).map((id) => Number(id))}
+          collectedCount={Object.keys(collectedTreasures).length}
+          totalTreasureCount={books.length}
+          showCollectionBar={showCollectionBar}
         />
       </div>
 
