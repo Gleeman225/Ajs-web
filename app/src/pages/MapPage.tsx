@@ -5,6 +5,10 @@ interface MapPageProps {
   books: Book[];
   onSelectBook: (book: Book) => void;
   onBackToDoor: () => void;
+  collectedTreasureIds: number[];
+  collectedCount: number;
+  totalTreasureCount: number;
+  showCollectionBar: boolean;
 }
 
 interface HoverInfo {
@@ -25,9 +29,29 @@ const landmarkAreas: Record<number, { x: number; y: number; width: number; heigh
   8: { x: 72, y: 68, width: 18, height: 20 }, // 帷幕庄园 - 右下
 };
 
-export default function MapPage({ books, onSelectBook, onBackToDoor }: MapPageProps) {
+const treasureItems: Record<number, { name: string; symbol: string }> = {
+  1: { name: '书房匕首', symbol: '🗡️' },
+  2: { name: '列车车票', symbol: '🎫' },
+  3: { name: '字母牌', symbol: '🔤' },
+  4: { name: '蓝宝石', symbol: '💎' },
+  5: { name: '瓷偶', symbol: '⑩' },
+  6: { name: '遮阳伞', symbol: '⛱️' },
+  7: { name: '报纸启事', symbol: '📰' },
+  8: { name: '帷幕面具', symbol: '🎭' },
+};
+
+export default function MapPage({ 
+  books, 
+  onSelectBook, 
+  onBackToDoor,
+  collectedTreasureIds,
+  collectedCount,
+  totalTreasureCount,
+  showCollectionBar,
+}: MapPageProps) {
   const [hoveredBookId, setHoveredBookId] = useState<number | null>(null);
   const [hoverInfo, setHoverInfo] = useState<HoverInfo | null>(null);
+  const isCollectionComplete = collectedCount >= totalTreasureCount;
 
   // 处理地标悬停
   const handleLandmarkHover = useCallback((book: Book, e: React.MouseEvent) => {
@@ -106,6 +130,54 @@ export default function MapPage({ books, onSelectBook, onBackToDoor }: MapPagePr
         );
       })}
 
+      {/* 宝藏标记 - 阅读后留下 */}
+      {books.map((book) => {
+        if (!collectedTreasureIds.includes(book.id)) return null;
+        const area = landmarkAreas[book.id];
+        const treasure = treasureItems[book.id];
+        if (!area || !treasure) return null;
+        const centerX = area.x + area.width / 2;
+        const centerY = area.y + area.height / 2;
+
+        return (
+          <div
+            key={`treasure-${book.id}`}
+            className="absolute pointer-events-none z-10"
+            style={{
+              left: `${centerX}%`,
+              top: `${centerY}%`,
+              transform: 'translate(-50%, -50%)',
+            }}
+          >
+            <div 
+              className="w-10 h-10 rounded-full flex items-center justify-center text-lg"
+              style={{
+                background: 'radial-gradient(circle at 30% 30%, #f7e7a6 0%, #c79a2c 45%, #8a5f1f 100%)',
+                border: '2px solid #d4af37',
+                boxShadow: '0 0 12px rgba(212, 175, 55, 0.45), inset 0 0 6px rgba(255,255,255,0.25)',
+                textShadow: '0 1px 2px rgba(0,0,0,0.6)',
+              }}
+            >
+              {treasure.symbol}
+            </div>
+          </div>
+        );
+      })}
+
+      {/* 指南针闪烁光效 - 集齐后 */}
+      {isCollectionComplete && (
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10">
+          <div 
+            className="w-44 h-44 rounded-full animate-pulse"
+            style={{
+              background: 'radial-gradient(circle, rgba(255, 215, 0, 0.55) 0%, rgba(255, 215, 0, 0.25) 40%, transparent 70%)',
+              filter: 'blur(1px)',
+            }}
+          />
+          <div className="absolute inset-0 rounded-full border border-yellow-300/60 animate-ping" />
+        </div>
+      )}
+
       {/* 悬停信息卡 - 在元素下方显示 */}
       {hoverInfo && (
         <div 
@@ -143,6 +215,36 @@ export default function MapPage({ books, onSelectBook, onBackToDoor }: MapPagePr
         </svg>
         返回大门
       </button>
+
+      {/* 收集栏 */}
+      {showCollectionBar && (
+        <div className="absolute top-20 left-6 z-10">
+          <div 
+            className="px-4 py-3 rounded"
+            style={{
+              background: 'linear-gradient(180deg, #3d2817 0%, #2a1b0f 50%, #3d2817 100%)',
+              boxShadow: '0 4px 15px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1)',
+              border: '2px solid #5c3d1f',
+              minWidth: 200,
+            }}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[#d4af37] font-serif text-sm tracking-wider">宝藏收集</span>
+              <span className="text-[#c9a857] text-xs">{collectedCount}/{totalTreasureCount}</span>
+            </div>
+            <div className="h-2 rounded-full bg-[#1f140b] border border-[#5c3d1f] overflow-hidden">
+              <div 
+                className="h-full transition-all duration-500"
+                style={{
+                  width: `${Math.min(100, (collectedCount / Math.max(1, totalTreasureCount)) * 100)}%`,
+                  background: 'linear-gradient(90deg, #d4af37 0%, #f3d98b 60%, #d4af37 100%)',
+                  boxShadow: '0 0 6px rgba(212,175,55,0.6)',
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 标题 - 木板背景 */}
       <div className="absolute top-6 right-6 z-10">
